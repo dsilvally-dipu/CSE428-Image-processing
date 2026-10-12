@@ -1,0 +1,293 @@
+**Input:** cat/dog image
+**Output:**
+
+1. **Where is the animal?** → segmentation
+2. **What breed is it?** → classification
+
+You will do this first with **U-Net**, then with **Attention U-Net**.
+
+---
+
+## 1. Dataset Exploration
+
+**What:** Use Oxford-IIIT Pet dataset.
+
+**How:**
+
+* Download images, breed labels, and segmentation masks.
+* Check image/mask shapes.
+* Convert mask:
+
+  * `1 = foreground`
+  * `2 = background`
+  * `3 = foreground` (boundary → foreground)
+* Show **9 random images in a 3×3 grid with mask overlay**.
+
+**Why:** Understand and verify the data before training. 
+
+---
+
+## 2. Preprocessing
+
+**What:** Prepare images for the neural network.
+
+**How:**
+
+* Resize images/masks to **256×256**.
+* Normalize images.
+* Apply basic augmentation such as horizontal flip.
+* Keep image and mask transformations synchronized.
+
+**Why:** Neural networks need consistent input sizes, and augmentation helps generalization. 
+
+---
+
+## 3. Train / Validation / Test Split
+
+**What:** Separate data into three groups.
+
+**How:**
+
+```text
+Dataset
+ ├── Train → model learns
+ ├── Validation → monitor/tune model
+ └── Test → final evaluation
+```
+
+The project requires results for all three. 
+
+---
+
+## 4. Build Base U-Net
+
+**What:** Build the segmentation model.
+
+**How:**
+
+```text
+Image
+ ↓
+Encoder
+ ↓
+Bottleneck
+ ↓
+Decoder
+ ↓
+Segmentation Mask
+```
+
+Use **skip connections** between encoder and decoder.
+
+**Why:** U-Net is designed to preserve spatial information and produce pixel-level segmentation. 
+
+---
+
+## 5. Add Classification Head
+
+**What:** Make the same model also predict the animal's breed.
+
+**How:**
+
+```text
+Encoder output
+ ↓
+Global Average Pooling
+ ↓
+Linear layer
+ ↓
+37 breed classes
+```
+
+So the model produces:
+
+```text
+Segmentation mask
+        +
+Breed prediction
+```
+
+**Why:** The project specifically requires classification from the encoder output. 
+
+---
+
+## 6. Train Both Tasks Together
+
+**What:** Train segmentation and classification simultaneously.
+
+**How:**
+
+```text
+Segmentation → BCE + Dice loss
+Classification → Cross Entropy
+```
+
+Then:
+
+```text
+Total Loss =
+Segmentation Loss + Classification Loss
+```
+
+Use:
+
+* **AdamW**
+* RTX 3060 GPU
+* mixed precision
+* checkpoints
+
+**Why:** The model needs to learn both where the animal is and what breed it is.
+
+---
+
+## 7. Evaluate U-Net
+
+### Segmentation
+
+Calculate:
+
+* **mIoU**
+* **Dice**
+* **Pixel Accuracy**
+
+### Classification
+
+Calculate:
+
+* **Accuracy**
+* **Precision**
+* **Recall**
+* **F1**
+
+For:
+
+```text
+Train
+Validation
+Test
+```
+
+These are the required metrics. 
+
+---
+
+## 8. Create Prediction/Demo
+
+**What:** Show the model working on an individual image.
+
+**How:**
+
+Give an image index:
+
+```text
+Image #150
+```
+
+Show:
+
+```text
+Original image
+True mask
+Predicted mask
+True breed
+Predicted breed
+```
+
+The project specifically requires this kind of demonstration. 
+
+---
+
+## 9. Build Attention U-Net
+
+**What:** Improve the U-Net using attention gates.
+
+**How:**
+
+Normal:
+
+```text
+Encoder ─────→ Decoder
+```
+
+Attention U-Net:
+
+```text
+Encoder
+   ↓
+Attention Gate
+   ↓
+Decoder
+```
+
+The attention gate filters the encoder's skip features before passing them to the decoder.
+
+**Why:** Help the model focus on useful features for segmentation. The project requires updating U-Net to Attention U-Net. 
+
+---
+
+## 10. Train Attention U-Net
+
+Use essentially the **same training setup**:
+
+```text
+Same dataset
+Same preprocessing
+Same classifier
+Same losses
+Same evaluation metrics
+```
+
+Train it and save the best model.
+
+---
+
+## 11. Compare U-Net vs Attention U-Net
+
+Create a final table:
+
+| Model           | mIoU | Dice | Pixel Acc. | Class Acc. | F1 |
+| --------------- | ---: | ---: | ---------: | ---------: | -: |
+| U-Net           |    — |    — |          — |          — |  — |
+| Attention U-Net |    — |    — |          — |          — |  — |
+
+Then discuss:
+
+> Which model performs better and why?
+
+Don't assume Attention U-Net will win—we'll use your actual results.
+
+---
+
+# Final workflow
+
+```text
+1. Dataset
+      ↓
+2. Clean masks
+      ↓
+3. Preprocess + augment
+      ↓
+4. Train/Val/Test
+      ↓
+5. Build U-Net
+      ↓
+6. Add classifier
+      ↓
+7. Train both tasks
+      ↓
+8. Evaluate
+      ↓
+9. Demonstrate predictions
+      ↓
+10. Build Attention U-Net
+      ↓
+11. Train + evaluate
+      ↓
+12. Compare both
+```
+
+### What you DON'T need initially
+
+Don't worry about the **bonus tasks** like MobileNet/EfficientNet comparisons, three-class segmentation, extensive hyperparameter experiments, or EfficientDet. They're listed separately as bonus work. 
+
+**Our next actual coding step should be: Dataset → PyTorch `Dataset` + `DataLoader` → check one batch.** Then we move to building the U-Net.
